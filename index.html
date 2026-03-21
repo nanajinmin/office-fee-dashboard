@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사무실 관리비 비교</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
+      background: #F7F8FA;
+      color: #191F28;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: #191F28;
+      color: white;
+      padding: 24px 40px;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    header p {
+      font-size: 0.8rem;
+      color: #8B95A1;
+      margin-top: 4px;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 28px 24px;
+    }
+
+    /* ── MODE TABS ── */
+    .mode-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 24px;
+      background: #EAECEF;
+      border-radius: 12px;
+      padding: 4px;
+      width: fit-content;
+    }
+
+    .mode-tab {
+      padding: 8px 22px;
+      border-radius: 9px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #8B95A1;
+      transition: all 0.15s;
+    }
+
+    .mode-tab.active {
+      background: #FFFFFF;
+      color: #191F28;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+    }
+
+    .mode-tab:hover:not(.active) { color: #4E5968; }
+
+    /* ── BRANCH PANEL ── */
+    .branch-panel {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1px solid #E5E8EB;
+      margin-bottom: 20px;
+    }
+
+    .branch-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .branch-panel-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #8B95A1;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .branch-actions { display: flex; gap: 8px; }
+
+    .branch-action-btn {
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid #E5E8EB;
+      background: white;
+      cursor: pointer;
+      font-size: 0.75rem;
+      color: #4E5968;
+      transition: all 0.15s;
+    }
+
+    .branch-action-btn:hover { border-color: #3182F6; color: #3182F6; }
+
+    /* Branch groups */
+    .branch-groups { display: flex; flex-direction: column; gap: 12px; }
+
+    .branch-group-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #B0B8C1;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+
+    .branch-chips-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .branch-chip {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px 7px 10px;
+      border-radius: 24px;
+      border: 1.5px solid #E5E8EB;
+      background: #FFFFFF;
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #4E5968;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .branch-chip-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .branch-chip.selected {
+      background: color-mix(in srgb, var(--chip-color) 14%, white);
+      border-color: var(--chip-color);
+      color: #191F28;
+    }
+
+    .branch-chip-note {
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: #B0B8C1;
+      margin-left: 1px;
+    }
+
+    .branch-chip-badge {
+      font-size: 0.63rem;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #F2F4F6;
+      color: #8B95A1;
+      margin-left: 2px;
+    }
+
+    .branch-chip.selected .branch-chip-badge {
+      background: color-mix(in srgb, var(--chip-color) 25%, white);
+      color: color-mix(in srgb, var(--chip-color) 80%, #333);
+    }
+
+    /* single mode: inactive dimmed */
+    .branch-chip.single-mode-inactive {
+      opacity: 0.4;
+    }
+
+    /* ── ITEM SELECTOR ── */
+    .item-selector {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .item-btn {
+      padding: 7px 20px;
+      border-radius: 24px;
+      border: 1.5px solid #E5E8EB;
+      background: white;
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #4E5968;
+      transition: all 0.15s;
+    }
+
+    .item-btn.active {
+      color: white;
+      border-color: transparent;
+    }
+
+    /* ── SUMMARY CARDS ── */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) { .summary-cards { grid-template-columns: repeat(2, 1fr); } }
+
+    .card {
+      background: white;
+      border-radius: 14px;
+      padding: 18px 20px;
+      border: 1px solid #E5E8EB;
+    }
+
+    .card .label { font-size: 0.74rem; color: #8B95A1; margin-bottom: 6px; font-weight: 500; }
+    .card .value { font-size: 1.25rem; font-weight: 700; color: #191F28; letter-spacing: -0.5px; }
+    .card .sub   { font-size: 0.73rem; color: #B0B8C1; margin-top: 4px; }
+
+    .card-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .card-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+    }
+
+    .card-dot-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #8B95A1;
+    }
+
+    /* ── SECTIONS ── */
+    .section {
+      background: white;
+      border-radius: 16px;
+      padding: 22px 24px;
+      border: 1px solid #E5E8EB;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #191F28;
+      margin-bottom: 18px;
+      letter-spacing: -0.2px;
+    }
+
+    .chart-container { position: relative; height: 320px; }
+
+    /* ── TABLE ── */
+    .table-wrap { overflow-x: auto; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+
+    thead th {
+      background: #F7F8FA;
+      padding: 10px 14px;
+      text-align: right;
+      font-weight: 600;
+      color: #8B95A1;
+      border-bottom: 1px solid #E5E8EB;
+      white-space: nowrap;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    thead th:first-child { text-align: left; }
+
+    tbody tr { border-bottom: 1px solid #F2F4F6; transition: background 0.1s; }
+    tbody tr:hover { background: #F7F8FA; }
+    tbody tr.latest { background: #FAFBFF; }
+
+    tbody td {
+      padding: 10px 14px;
+      text-align: right;
+      color: #4E5968;
+      white-space: nowrap;
+    }
+
+    tbody td:first-child { text-align: left; font-weight: 600; color: #191F28; }
+
+    .num { font-variant-numeric: tabular-nums; }
+
+    .pct-bar {
+      display: flex;
+      height: 4px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 10px;
+      gap: 2px;
+    }
+
+    .pct-bar-seg { height: 100%; border-radius: 2px; }
+
+    tfoot td {
+      padding: 11px 14px;
+      text-align: right;
+      font-weight: 700;
+      background: #F7F8FA;
+      border-top: 1px solid #E5E8EB;
+      color: #191F28;
+      font-size: 0.84rem;
+    }
+
+    tfoot td:first-child { text-align: left; }
+
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.78rem;
+      color: #8B95A1;
+      font-weight: 500;
+    }
+
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* ── ITEM COMPARE TABLE ── */
+    .compare-table-wrap { overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>사무실 관리비 현황</h1>
+  <p>지점별 월별 관리비 비교 대시보드</p>
+</header>
+
+<div class="container">
+
+  <!-- Mode tabs -->
+  <div class="mode-tabs">
+    <button class="mode-tab active" onclick="setMode('single')">단일 지점</button>
+    <button class="mode-tab" onclick="setMode('item')">항목 비교</button>
+  </div>
+
+  <!-- Branch panel -->
+  <div class="branch-panel">
+    <div class="branch-panel-header">
+      <span class="branch-panel-label" id="branchPanelLabel">지점 선택</span>
+      <div class="branch-actions" id="branchActions" style="display:none">
+        <button class="branch-action-btn" onclick="selectAll()">전체 선택</button>
+        <button class="branch-action-btn" onclick="deselectAll()">전체 해제</button>
+      </div>
+    </div>
+    <div id="branchGroups"></div>
+  </div>
+
+  <!-- Item selector (항목 비교 only) -->
+  <div class="item-selector" id="itemSelector" style="display:none">
+    <button class="item-btn active" data-item="total"   onclick="setItem(this)">합계</button>
+    <button class="item-btn"        data-item="general" onclick="setItem(this)">일반관리비</button>
+    <button class="item-btn"        data-item="elec"    onclick="setItem(this)">세대전기료</button>
+    <button class="item-btn"        data-item="other"   onclick="setItem(this)">기타항목</button>
+  </div>
+
+  <!-- Main content -->
+  <div id="mainContent"></div>
+
+</div>
+
+<script>
+// ============================
+//  DATA
+// ============================
+const branches = {
+  '낙산해변': {
+    note: '그랑베이낙산 상가 206호',
+    type: '상가',
+    data: [
+      { month: '2025-01', total: 807830,  general: 225020, elec: 485780 },
+      { month: '2025-02', total: 783600,  general: 190960, elec: 430900 },
+      { month: '2025-03', total: 549420,  general: 197030, elec: 199840 },
+      { month: '2025-04', total: 424940,  general: 196750, elec: 93330  },
+      { month: '2025-05', total: 438810,  general: 219090, elec: 53320  },
+      { month: '2025-06', total: 503060,  general: 219130, elec: 111270 },
+      { month: '2025-07', total: 615740,  general: 229080, elec: 207360 },
+      { month: '2025-08', total: 720190,  general: 222030, elec: 249260 },
+      { month: '2025-09', total: 413590,  general: 226270, elec: 83560  },
+      { month: '2025-10', total: 481350,  general: 226730, elec: 64010  },
+      { month: '2025-11', total: 542400,  general: 205420, elec: 171060 },
+      { month: '2025-12', total: 695790,  general: 205820, elec: 299040 },
+      { month: '2026-01', total: 782270,  general: 207790, elec: 358550 },
+      { month: '2026-02', total: 615820,  general: 203500, elec: 253350 },
+    ]
+  },
+  '시흥거북섬': {
+    note: '시흥오뷰코스타 상가 501호',
+    type: '상가',
+    data: [
+      { month: '2025-01', total: 322670,  general: 131570, elec: 10220  },
+      { month: '2025-02', total: 566200,  general: 132370, elec: 34210  },
+      { month: '2025-03', total: 534700,  general: 131680, elec: 32320  },
+      { month: '2025-04', total: 516270,  general: 132070, elec: 36830  },
+      { month: '2025-05', total: 295280,  general: 154040, elec: 9840   },
+      { month: '2025-06', total: 239890,  general: 143860, elec: 14560  },
+      { month: '2025-07', total: 256140,  general: 132170, elec: 19900  },
+      { month: '2025-08', total: 263220,  general: 128140, elec: 16610  },
+      { month: '2025-09', total: 225390,  general: 131720, elec: 9410   },
+      { month: '2025-10', total: 255840,  general: 131180, elec: 11950  },
+      { month: '2025-11', total: 266720,  general: 136800, elec: 13290  },
+      { month: '2025-12', total: 367960,  general: 144400, elec: 19470  },
+      { month: '2026-01', total: 399600,  general: 161480, elec: 16760  },
+      { month: '2026-02', total: 543980,  general: 169480, elec: 309600 },
+    ]
+  },
+  '해운대역': {
+    note: '라뮤에뜨 객실 2010호',
+    type: '객실',
+    data: [
+      { month: '2025-01', total: 328820, general: 188821, elec: 58408 },
+      { month: '2025-02', total: 343180, general: 198453, elec: 58651 },
+      { month: '2025-03', total: 339140, general: 198154, elec: 60148 },
+      { month: '2025-04', total: 319870, general: 197115, elec: 49212 },
+      { month: '2025-05', total: 322200, general: 200062, elec: 45453 },
+      { month: '2025-06', total: 327190, general: 192725, elec: 53629 },
+      { month: '2025-07', total: 349190, general: 189066, elec: 78409 },
+      { month: '2025-08', total: 406900, general: 187144, elec: 122151 },
+      { month: '2025-09', total: 425850, general: 214513, elec: 118011 },
+      { month: '2025-10', total: 368120, general: 204548, elec: 77801 },
+      { month: '2025-11', total: 343440, general: 200844, elec: 56555 },
+      { month: '2025-12', total: 322700, general: 190349, elec: 52766 },
+      { month: '2026-01', total: 332190, general: 189023, elec: 56006 },
+      { month: '2026-02', total: 335860, general: 188902, elec: 57716 },
+    ]
+  },
+  '속초해변C': {
+    note: '리센오션파크속초C 객실 602호',
+    type: '객실',
+    data: [
+      { month: '2025-01', total: 186830, general: 109800, elec: 23310 },
+      { month: '2025-02', total: 188750, general: 111370, elec: 24880 },
+      { month: '2025-03', total: 182030, general: 110330, elec: 18590 },
+      { month: '2025-04', total: 175740, general: 111350, elec: 15640 },
+      { month: '2025-05', total: 174750, general: 113880, elec: 15890 },
+      { month: '2025-06', total: 186260, general: 119130, elec: 15540 },
+      { month: '2025-07', total: 197900, general: 122790, elec: 21560 },
+      { month: '2025-08', total: 208840, general: 125210, elec: 29680 },
+      { month: '2025-09', total: 208880, general: 120710, elec: 32060 },
+      { month: '2025-10', total: 194280, general: 126900, elec: 18870 },
+      { month: '2025-11', total: 175660, general: 117740, elec: 15330 },
+      { month: '2025-12', total: 167910, general: 76670,  elec: 19220 },
+      { month: '2026-01', total: 185180, general: 119920, elec: 17070 },
+    ]
+  },
+  '속초해변AB': {
+    note: '속초해변리조트AB 객실 B동 320호',
+    type: '객실',
+    data: [
+      { month: '2025-01', total: 178690, general: 75640, elec: 24650 },
+      { month: '2025-02', total: 109490, general: 73760, elec: 25640 },
+      { month: '2025-03', total: 165170, general: 74110, elec: 22840 },
+      { month: '2025-04', total: 150220, general: 72240, elec: 20660 },
+      { month: '2025-05', total: 144480, general: 73840, elec: 19110 },
+      { month: '2025-06', total: 153790, general: 74140, elec: 20310 },
+      { month: '2025-07', total: 173670, general: 73820, elec: 31770 },
+      { month: '2025-08', total: 184220, general: 76680, elec: 39040 },
+      { month: '2025-09', total: 183820, general: 74110, elec: 39960 },
+      { month: '2025-10', total: 172720, general: 73750, elec: 25580 },
+      { month: '2025-11', total: 140250, general: 74440, elec: 21250 },
+      { month: '2025-12', total: 160240, general: 74470, elec: 23920 },
+      { month: '2026-01', total: 158610, general: 76080, elec: 24740 },
+      { month: '2026-02', total: 165760, general: 78050, elec: 26340 },
+    ]
+  }
+};
+
+// ============================
+//  PASTEL COLOR PALETTE
+// ============================
+const PALETTE = [
+  '#93C5FD', // pastel blue     - 낙산해변
+  '#86EFAC', // pastel green    - 시흥거북섬
+  '#FCA5A5', // pastel red      - 해운대역
+  '#C4B5FD', // pastel purple   - 속초해변C
+  '#FDE68A', // pastel yellow   - 속초해변AB
+];
+
+const ITEM_COLORS = {
+  total:   '#94A3B8',
+  general: '#93C5FD',
+  elec:    '#86EFAC',
+  other:   '#FDE68A',
+};
+
+const ITEM_BG_COLORS = {
+  total:   '#94A3B8',
+  general: '#3B82F6',
+  elec:    '#10B981',
+  other:   '#F59E0B',
+};
+
+const ITEM_LABELS = {
+  total: '합계', general: '일반관리비', elec: '세대전기료', other: '기타항목'
+};
+
+// Darker variants for text on white backgrounds (table headers, cell text)
+const PALETTE_DARK = [
+  '#1D4ED8', // deep blue     - 낙산해변
+  '#15803D', // deep green    - 시흥거북섬
+  '#DC2626', // deep red      - 해운대역
+  '#6D28D9', // deep purple   - 속초해변C
+  '#92400E', // deep amber    - 속초해변AB
+];
+
+const branchNames = Object.keys(branches);
+const branchColor = {};
+const branchDarkColor = {};
+branchNames.forEach((n, i) => {
+  branchColor[n]     = PALETTE[i % PALETTE.length];
+  branchDarkColor[n] = PALETTE_DARK[i % PALETTE_DARK.length];
+});
+
+// ============================
+//  STATE
+// ============================
+let currentMode = 'single';
+let selectedBranches = [branchNames[0]];
+let currentItem = 'total';
+let charts = [];
+
+// ============================
+//  HELPERS
+// ============================
+function processRow(r) {
+  return { ...r, other: r.total - r.general - r.elec };
+}
+
+function fmt(n) { return n.toLocaleString('ko-KR') + '원'; }
+function pct(a, b) { return b ? ((a / b) * 100).toFixed(1) + '%' : '-'; }
+
+function getAllMonths() {
+  return [...new Set(
+    Object.values(branches).flatMap(b => b.data.map(r => r.month))
+  )].sort();
+}
+
+function destroyCharts() {
+  charts.forEach(c => c && c.destroy());
+  charts = [];
+}
+
+// ============================
+//  BRANCH PANEL (grouped)
+// ============================
+function buildBranchPanel() {
+  const container = document.getElementById('branchGroups');
+  const actions   = document.getElementById('branchActions');
+  const label     = document.getElementById('branchPanelLabel');
+
+  container.innerHTML = '';
+
+  if (currentMode === 'single') {
+    label.textContent = '지점 선택';
+    actions.style.display = 'none';
+  } else {
+    label.textContent = '비교할 지점 선택';
+    actions.style.display = 'flex';
+  }
+
+  const groups = { '상가': [], '객실': [] };
+  branchNames.forEach(name => groups[branches[name].type].push(name));
+
+  const groupsEl = document.createElement('div');
+  groupsEl.className = 'branch-groups';
+
+  ['상가', '객실'].forEach(type => {
+    const groupNames = groups[type];
+    if (!groupNames.length) return;
+
+    const groupDiv = document.createElement('div');
+    groupDiv.innerHTML = `<div class="branch-group-label">${type}</div>`;
+    const chipsRow = document.createElement('div');
+    chipsRow.className = 'branch-chips-row';
+
+    groupNames.forEach(name => {
+      const color = branchColor[name];
+      const branch = branches[name];
+      const isSelected = selectedBranches.includes(name);
+
+      const chip = document.createElement('div');
+      chip.className = 'branch-chip' + (isSelected ? ' selected' : '');
+      if (currentMode === 'single' && !isSelected) chip.classList.add('single-mode-inactive');
+      chip.style.setProperty('--chip-color', color);
+      chip.innerHTML = `
+        <div class="branch-chip-dot" style="background:${color}"></div>
+        <span>${name}</span>
+        <span class="branch-chip-note">${branch.note}</span>
+      `;
+      chip.onclick = () => toggleBranch(name);
+      chipsRow.appendChild(chip);
+    });
+
+    groupDiv.appendChild(chipsRow);
+    groupsEl.appendChild(groupDiv);
+  });
+
+  container.appendChild(groupsEl);
+}
+
+function toggleBranch(name) {
+  if (currentMode === 'single') {
+    selectedBranches = [name];
+  } else {
+    if (selectedBranches.includes(name)) {
+      if (selectedBranches.length > 1) {
+        selectedBranches = selectedBranches.filter(n => n !== name);
+      }
+    } else {
+      selectedBranches.push(name);
+    }
+  }
+  buildBranchPanel();
+  renderMain();
+}
+
+function selectAll()   { selectedBranches = [...branchNames]; buildBranchPanel(); renderMain(); }
+function deselectAll() {
+  selectedBranches = [branchNames[0]];
+  buildBranchPanel();
+  renderMain();
+}
+
+// ============================
+//  MODE
+// ============================
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach((btn, i) => {
+    btn.classList.toggle('active', ['single','item'][i] === mode);
+  });
+  document.getElementById('itemSelector').style.display = mode === 'item' ? 'flex' : 'none';
+
+  if (mode === 'single') {
+    selectedBranches = [selectedBranches[0] || branchNames[0]];
+  } else if (selectedBranches.length < 2) {
+    selectedBranches = [...branchNames];
+  }
+
+  buildBranchPanel();
+  renderMain();
+}
+
+function setItem(btn) {
+  document.querySelectorAll('.item-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '';
+    b.style.borderColor = '';
+    b.style.color = '';
+  });
+  btn.classList.add('active');
+  const item = btn.dataset.item;
+  btn.style.background  = ITEM_BG_COLORS[item];
+  btn.style.borderColor = ITEM_BG_COLORS[item];
+  btn.style.color       = 'white';
+  currentItem = item;
+  renderMain();
+}
+
+// Chart defaults
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', sans-serif";
+Chart.defaults.color = '#8B95A1';
+
+// ============================
+//  RENDER DISPATCHER
+// ============================
+function renderMain() {
+  destroyCharts();
+  const content = document.getElementById('mainContent');
+  content.innerHTML = '';
+
+  if (currentMode === 'single') {
+    renderSingle(content);
+  } else {
+    renderItem(content);
+  }
+}
+
+// ============================
+//  SINGLE BRANCH VIEW
+// ============================
+function renderSingle(el) {
+  const name   = selectedBranches[0];
+  const branch = branches[name];
+  const rows   = branch.data.map(processRow);
+  const last   = rows[rows.length - 1];
+
+  el.innerHTML = `
+    <div class="summary-cards">
+      <div class="card">
+        <div class="card-indicator">
+          <div class="card-dot" style="background:#94A3B8"></div>
+          <span class="card-dot-label">최근 월 합계</span>
+        </div>
+        <div class="value num">${fmt(last.total)}</div>
+        <div class="sub">${last.month}</div>
+      </div>
+      <div class="card">
+        <div class="card-indicator">
+          <div class="card-dot" style="background:#93C5FD"></div>
+          <span class="card-dot-label">일반관리비</span>
+        </div>
+        <div class="value num">${last.general.toLocaleString()}원</div>
+        <div class="sub">전체의 ${pct(last.general, last.total)}</div>
+      </div>
+      <div class="card">
+        <div class="card-indicator">
+          <div class="card-dot" style="background:#86EFAC"></div>
+          <span class="card-dot-label">세대전기료</span>
+        </div>
+        <div class="value num">${last.elec.toLocaleString()}원</div>
+        <div class="sub">전체의 ${pct(last.elec, last.total)}</div>
+      </div>
+      <div class="card">
+        <div class="card-indicator">
+          <div class="card-dot" style="background:#FDE68A"></div>
+          <span class="card-dot-label">기타항목</span>
+        </div>
+        <div class="value num">${last.other.toLocaleString()}원</div>
+        <div class="sub">전체의 ${pct(last.other, last.total)}</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">월별 항목 구성 <span style="font-weight:400;color:${branchColor[name]};font-size:0.85rem;margin-left:6px">● ${name}</span></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#93C5FD"></div>일반관리비</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#86EFAC"></div>세대전기료</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FDE68A"></div>기타항목</div>
+      </div>
+      <div class="chart-container"><canvas id="c_stacked"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">항목별 추세 <span style="font-weight:400;color:${branchColor[name]};font-size:0.85rem;margin-left:6px">● ${name}</span></div>
+      <div class="chart-container" style="height:240px"><canvas id="c_line"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">월별 상세 내역 <span style="font-weight:400;color:${branchColor[name]};font-size:0.85rem;margin-left:6px">● ${name}</span></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>월</th><th>합계</th>
+            <th>일반관리비</th><th>비율</th>
+            <th>세대전기료</th><th>비율</th>
+            <th>기타항목</th><th>비율</th>
+            <th>구성</th>
+          </tr></thead>
+          <tbody id="t_body"></tbody>
+          <tfoot id="t_foot"></tfoot>
+        </table>
+      </div>
+    </div>
+  `;
+
+  const labels = rows.map(r => r.month.replace('20',''));
+
+  // Stacked bar
+  charts.push(new Chart(document.getElementById('c_stacked'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: '일반관리비', data: rows.map(r => r.general), backgroundColor: '#93C5FD', borderRadius: 0 },
+        { label: '세대전기료', data: rows.map(r => r.elec),    backgroundColor: '#86EFAC', borderRadius: 0 },
+        { label: '기타항목',   data: rows.map(r => r.other),   backgroundColor: '#FDE68A', borderRadius: [4,4,0,0], borderSkipped: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString()}원` }}
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false }, border: { display: false } },
+        y: { stacked: true, grid: { color: '#F2F4F6' }, border: { display: false },
+             ticks: { callback: v => (v/10000).toFixed(0)+'만' }}
+      }
+    }
+  }));
+
+  // Line
+  charts.push(new Chart(document.getElementById('c_line'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '일반관리비', data: rows.map(r => r.general), borderColor: '#93C5FD', backgroundColor: '#93C5FD20', fill: true,  tension: 0.35, pointRadius: 3, borderWidth: 2 },
+        { label: '세대전기료', data: rows.map(r => r.elec),    borderColor: '#86EFAC', backgroundColor: '#86EFAC18', fill: true,  tension: 0.35, pointRadius: 3, borderWidth: 2 },
+        { label: '기타항목',   data: rows.map(r => r.other),   borderColor: '#FDE68A', backgroundColor: '#FDE68A18', fill: true,  tension: 0.35, pointRadius: 3, borderWidth: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, padding: 14, usePointStyle: true, pointStyleWidth: 8 }},
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw.toLocaleString()}원` }}
+      },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: '#F2F4F6' }, border: { display: false },
+             ticks: { callback: v => (v/10000).toFixed(0)+'만' }}
+      }
+    }
+  }));
+
+  // Table
+  const tbody = document.getElementById('t_body');
+  const tfoot = document.getElementById('t_foot');
+  let st = 0, sg = 0, se = 0, so = 0;
+
+  rows.forEach((r, i) => {
+    st += r.total; sg += r.general; se += r.elec; so += r.other;
+    const gP = ((r.general/r.total)*100).toFixed(1);
+    const eP = ((r.elec/r.total)*100).toFixed(1);
+    const oP = ((r.other/r.total)*100).toFixed(1);
+    const tr = document.createElement('tr');
+    if (i === rows.length - 1) tr.className = 'latest';
+    tr.innerHTML = `
+      <td>${r.month}</td>
+      <td class="num">${r.total.toLocaleString()}</td>
+      <td class="num" style="color:#3B82F6">${r.general.toLocaleString()}</td>
+      <td style="color:#B0B8C1;font-size:0.78rem">${gP}%</td>
+      <td class="num" style="color:#10B981">${r.elec.toLocaleString()}</td>
+      <td style="color:#B0B8C1;font-size:0.78rem">${eP}%</td>
+      <td class="num" style="color:#F59E0B">${r.other.toLocaleString()}</td>
+      <td style="color:#B0B8C1;font-size:0.78rem">${oP}%</td>
+      <td style="min-width:80px">
+        <div class="pct-bar">
+          <div class="pct-bar-seg" style="width:${gP}%;background:#93C5FD"></div>
+          <div class="pct-bar-seg" style="width:${eP}%;background:#86EFAC"></div>
+          <div class="pct-bar-seg" style="width:${oP}%;background:#FDE68A"></div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tfoot.innerHTML = `<tr>
+    <td>합계 (${rows.length}개월)</td>
+    <td class="num">${st.toLocaleString()}</td>
+    <td class="num" style="color:#3B82F6">${sg.toLocaleString()}</td>
+    <td style="color:#B0B8C1;font-size:0.78rem">${((sg/st)*100).toFixed(1)}%</td>
+    <td class="num" style="color:#10B981">${se.toLocaleString()}</td>
+    <td style="color:#B0B8C1;font-size:0.78rem">${((se/st)*100).toFixed(1)}%</td>
+    <td class="num" style="color:#F59E0B">${so.toLocaleString()}</td>
+    <td style="color:#B0B8C1;font-size:0.78rem">${((so/st)*100).toFixed(1)}%</td>
+    <td></td>
+  </tr>`;
+}
+
+// ============================
+//  ITEM VIEW (항목 비교)
+// ============================
+function renderItem(el) {
+  const allMonths   = getAllMonths();
+  const selBranches = selectedBranches.filter(n => branches[n]);
+  const labels      = allMonths.map(m => m.replace('20',''));
+  const item        = currentItem;
+  const itemLabel   = ITEM_LABELS[item];
+
+  const rowMaps = {};
+  selBranches.forEach(name => {
+    rowMaps[name] = Object.fromEntries(branches[name].data.map(processRow).map(r => [r.month, r]));
+  });
+
+  el.innerHTML = `
+    <div class="section">
+      <div class="section-title">${itemLabel} 월별 추이 비교</div>
+      <div class="chart-container" style="height:300px"><canvas id="c_item_line"></canvas></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">${itemLabel} 월별 비교표</div>
+      <div class="compare-table-wrap">
+        <table id="item_table"></table>
+      </div>
+    </div>
+  `;
+
+  // Line chart
+  charts.push(new Chart(document.getElementById('c_item_line'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: selBranches.map(name => ({
+        label: name,
+        data: allMonths.map(m => rowMaps[name][m]?.[item] ?? null),
+        borderColor: branchColor[name],
+        backgroundColor: branchColor[name] + '20',
+        fill: false, tension: 0.35, pointRadius: 3, borderWidth: 2, spanGaps: false
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 11 }, padding: 14, usePointStyle: true, pointStyleWidth: 8 }},
+        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toLocaleString()}원` }}
+      },
+      scales: {
+        x: { grid: { display: false }, border: { display: false } },
+        y: { grid: { color: '#F2F4F6' }, border: { display: false },
+             ticks: { callback: v => (v/10000).toFixed(0)+'만' }}
+      }
+    }
+  }));
+
+  // Table
+  const table = document.getElementById('item_table');
+  const thCells = selBranches.map(n => `<th style="color:${branchDarkColor[n]};font-weight:700">${n}</th>`).join('');
+  const cumSums = {};
+  selBranches.forEach(n => { cumSums[n] = 0; });
+
+  const tRows = allMonths.map(m => {
+    selBranches.forEach(n => { if (rowMaps[n][m]) cumSums[n] += rowMaps[n][m][item] || 0; });
+    return `<tr><td>${m}</td>${selBranches.map(n => {
+      const r = rowMaps[n][m];
+      return `<td class="num" style="color:${branchDarkColor[n]}">${r ? (r[item]||0).toLocaleString() : '-'}</td>`;
+    }).join('')}</tr>`;
+  }).join('');
+
+  const tfCells = selBranches.map(n =>
+    `<td class="num" style="color:${branchDarkColor[n]};font-weight:700">${cumSums[n].toLocaleString()}</td>`
+  ).join('');
+
+  table.innerHTML = `
+    <thead><tr><th>월</th>${thCells}</tr></thead>
+    <tbody>${tRows}</tbody>
+    <tfoot><tr><td>합계</td>${tfCells}</tr></tfoot>
+  `;
+}
+
+// ============================
+//  INIT
+// ============================
+buildBranchPanel();
+renderMain();
+</script>
+</body>
+</html>
