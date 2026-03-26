@@ -72,6 +72,24 @@
 
     .mode-tab:hover:not(.active) { color: #4E5968; }
 
+    /* ── COMPOSITION TOOLTIP ── */
+    .comp-tip {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: #E5E8EC; color: #4E5968; font-size: 9px; font-weight: 700;
+      cursor: help; position: relative; margin-left: 4px; vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .comp-tip::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: #191F28; color: #fff; font-size: 11px; padding: 8px 12px;
+      border-radius: 8px; white-space: pre-wrap; opacity: 0; pointer-events: none;
+      transition: opacity 0.15s; min-width: 200px; max-width: 280px; z-index: 200;
+      line-height: 1.6; text-align: left;
+    }
+    .comp-tip:hover::after { opacity: 1; }
+
     /* ── INQUIRY VIEW ── */
     .inq-grid {
       display: flex;
@@ -696,6 +714,7 @@
     <button class="item-btn"        data-item="general" onclick="setItem(this)">일반관리비</button>
     <button class="item-btn"        data-item="elec"    onclick="setItem(this)">세대전기료</button>
     <button class="item-btn"        data-item="other"   onclick="setItem(this)">기타항목</button>
+    <button class="item-btn"        data-item="kwh"     onclick="setItem(this)">⚡ 사용량(kWh)</button>
   </div>
 
   <!-- Main content -->
@@ -752,60 +771,60 @@ const branches = {
     note: '라뮤에뜨 객실 2010호',
     type: '객실',
     data: [
-      { month: '2025-01', total: 328820, general: 188821, elec: 58408 },
-      { month: '2025-02', total: 343180, general: 198453, elec: 58651 },
-      { month: '2025-03', total: 339140, general: 198154, elec: 60148 },
-      { month: '2025-04', total: 319870, general: 197115, elec: 49212 },
-      { month: '2025-05', total: 322200, general: 200062, elec: 45453 },
-      { month: '2025-06', total: 327190, general: 192725, elec: 53629 },
-      { month: '2025-07', total: 349190, general: 189066, elec: 78409 },
-      { month: '2025-08', total: 406900, general: 187144, elec: 122151 },
-      { month: '2025-09', total: 425850, general: 214513, elec: 118011 },
-      { month: '2025-10', total: 368120, general: 204548, elec: 77801 },
-      { month: '2025-11', total: 343440, general: 200844, elec: 56555 },
-      { month: '2025-12', total: 322700, general: 190349, elec: 52766 },
-      { month: '2026-01', total: 332190, general: 189023, elec: 56006 },
-      { month: '2026-02', total: 335860, general: 188902, elec: 57716 },
+      { month: '2024-12', total: 328820, general: 136306, elec:  90789, kwh: 355 },
+      { month: '2025-01', total: 343180, general: 144377, elec:  91032, kwh: 362 },
+      { month: '2025-02', total: 339140, general: 145539, elec:  92529, kwh: 358 },
+      { month: '2025-03', total: 319870, general: 144528, elec:  81593, kwh: 363 },
+      { month: '2025-04', total: 322200, general: 144813, elec:  77834, kwh: 331 },
+      { month: '2025-05', total: 327190, general: 143354, elec:  86010, kwh: 395 },
+      { month: '2025-06', total: 349190, general: 143713, elec: 110790, kwh: 477 },
+      { month: '2025-07', total: 406900, general: 143959, elec: 154532, kwh: 719 },
+      { month: '2025-08', total: 425850, general: 148315, elec: 150392, kwh: 716 },
+      { month: '2025-09', total: 368120, general: 149436, elec: 110182, kwh: 563 },
+      { month: '2025-10', total: 343440, general: 149227, elec:  88936, kwh: 425 },
+      { month: '2025-11', total: 322700, general: 144929, elec:  85147, kwh: 322 },
+      { month: '2026-01', total: 332190, general: 189023, elec:  56006 },
+      { month: '2026-02', total: 335860, general: 188902, elec:  57716 },
     ]
   },
   '속초해변C': {
     note: '리센오션파크속초C 객실 602호',
     type: '객실',
     data: [
-      { month: '2025-01', total: 186830, general: 109800, elec: 23310 },
-      { month: '2025-02', total: 188750, general: 111370, elec: 24880 },
-      { month: '2025-03', total: 182030, general: 110330, elec: 18590 },
-      { month: '2025-04', total: 175740, general: 111350, elec: 15640 },
-      { month: '2025-05', total: 174750, general: 113880, elec: 15890 },
-      { month: '2025-06', total: 186260, general: 119130, elec: 15540 },
-      { month: '2025-07', total: 197900, general: 122790, elec: 21560 },
-      { month: '2025-08', total: 208840, general: 125210, elec: 29680 },
-      { month: '2025-09', total: 208880, general: 120710, elec: 32060 },
-      { month: '2025-10', total: 194280, general: 126900, elec: 18870 },
-      { month: '2025-11', total: 175660, general: 117740, elec: 15330 },
-      { month: '2025-12', total: 167910, general: 76670,  elec: 19220 },
-      { month: '2026-01', total: 185180, general: 119920, elec: 17070 },
-      { month: '2026-02', total: 196350, general: 122470, elec: 18000 },
+      { month: '2025-01', total: 186830, general: 109800, elec:  32480, kwh: 153 },
+      { month: '2025-02', total: 188750, general: 111370, elec:  34050, kwh: 166 },
+      { month: '2025-03', total: 182030, general: 110330, elec:  27760, kwh: 123 },
+      { month: '2025-04', total: 175740, general: 111350, elec:  24810, kwh: 120 },
+      { month: '2025-05', total: 174750, general: 113880, elec:  25060 },
+      { month: '2025-06', total: 186260, general: 119130, elec:  24710, kwh: 118 },
+      { month: '2025-07', total: 197900, general: 122790, elec:  30730, kwh: 139 },
+      { month: '2025-08', total: 208840, general: 125210, elec:  38850, kwh: 190 },
+      { month: '2025-09', total: 208880, general: 120710, elec:  41230, kwh: 211 },
+      { month: '2025-10', total: 194280, general: 126900, elec:  28040, kwh: 147 },
+      { month: '2025-11', total: 175660, general: 117740, elec:  24500, kwh: 120 },
+      { month: '2025-12', total: 167910, general:  76670, elec:  28390, kwh: 124 },
+      { month: '2026-01', total: 185180, general: 119920, elec:  26240 },
+      { month: '2026-02', total: 196350, general: 122470, elec:  27170 },
     ]
   },
   '속초해변AB': {
     note: '속초해변리조트AB 객실 B동 320호',
     type: '객실',
     data: [
-      { month: '2025-01', total: 178690, general: 75640, elec: 24650 },
-      { month: '2025-02', total: 109490, general: 73760, elec: 25640 },
-      { month: '2025-03', total: 165170, general: 74110, elec: 22840 },
-      { month: '2025-04', total: 150220, general: 72240, elec: 20660 },
-      { month: '2025-05', total: 144480, general: 73840, elec: 19110 },
-      { month: '2025-06', total: 153790, general: 74140, elec: 20310 },
-      { month: '2025-07', total: 173670, general: 73820, elec: 31770 },
-      { month: '2025-08', total: 184220, general: 76680, elec: 39040 },
-      { month: '2025-09', total: 183820, general: 74110, elec: 39960 },
-      { month: '2025-10', total: 172720, general: 73750, elec: 25580 },
-      { month: '2025-11', total: 140250, general: 74440, elec: 21250 },
-      { month: '2025-12', total: 160240, general: 74470, elec: 23920 },
-      { month: '2026-01', total: 158610, general: 76080, elec: 24740 },
-      { month: '2026-02', total: 165760, general: 78050, elec: 26340 },
+      { month: '2025-01', total: 178690, general:  75940, elec:  34910, kwh: 161 },
+      { month: '2025-02', total: 109490, general:  74210, elec:  35900, kwh: 171 },
+      { month: '2025-03', total: 165170, general:  74240, elec:  33100, kwh: 154 },
+      { month: '2025-04', total: 150220, general:  72370, elec:  30910, kwh: 160 },
+      { month: '2025-05', total: 144480, general:  73930, elec:  29360, kwh: 151 },
+      { month: '2025-06', total: 153790, general:  74200, elec:  30570, kwh: 167 },
+      { month: '2025-07', total: 173670, general:  73910, elec:  42040, kwh: 204 },
+      { month: '2025-08', total: 184220, general:  76850, elec:  49320, kwh: 249 },
+      { month: '2025-09', total: 183820, general:  74370, elec:  49970, kwh: 261 },
+      { month: '2025-10', total: 172720, general:  73830, elec:  35580, kwh: 199 },
+      { month: '2025-11', total: 140250, general:  74540, elec:  31240, kwh: 167 },
+      { month: '2025-12', total: 160240, general:  74650, elec:  33900, kwh: 160 },
+      { month: '2026-01', total: 158610, general:  76250, elec:  34730, kwh: 164 },
+      { month: '2026-02', total: 165760, general:  78140, elec:  36260, kwh: 169 },
     ]
   },
   '호텔동탄': {
@@ -826,14 +845,14 @@ const branches = {
     note: '강남SAC시그니티 상가 110호',
     type: '상가',
     data: [
-      { month: '2025-07', total: 242570, general: 89310, elec:  82480 },
-      { month: '2025-08', total: 316610, general: 89220, elec: 153340 },
-      { month: '2025-09', total: 283590, general: 87310, elec: 126000 },
-      { month: '2025-10', total: 223550, general: 94880, elec:  79950 },
-      { month: '2025-11', total: 216090, general: 88540, elec:  74020 },
-      { month: '2025-12', total: 256840, general: 85830, elec: 117940 },
+      { month: '2025-07', total: 242570, general: 89310, elec:  82480, kwh:  450 },
+      { month: '2025-08', total: 316610, general: 89220, elec: 153340, kwh:  878 },
+      { month: '2025-09', total: 283590, general: 87310, elec: 126000, kwh:  797 },
+      { month: '2025-10', total: 223550, general: 94880, elec:  79950, kwh:  543 },
+      { month: '2025-11', total: 216090, general: 88540, elec:  74020, kwh:  445 },
+      { month: '2025-12', total: 256840, general: 85830, elec: 117940, kwh:  686 },
       { month: '2026-01', total: 279930, general: 48810, elec: 175620 },
-      { month: '2026-02', total: 324630, general: 53890, elec: 206090 },
+      { month: '2026-02', total: 324630, general: 53890, elec: 206090, kwh: 1232 },
     ]
   },
   '명동': {
@@ -959,6 +978,7 @@ const ITEM_COLORS = {
   general: '#93C5FD',
   elec:    '#86EFAC',
   other:   '#FDE68A',
+  kwh:     '#C4B5FD',
 };
 
 const ITEM_BG_COLORS = {
@@ -966,10 +986,29 @@ const ITEM_BG_COLORS = {
   general: '#3B82F6',
   elec:    '#10B981',
   other:   '#F59E0B',
+  kwh:     '#7C3AED',
 };
 
 const ITEM_LABELS = {
-  total: '합계', general: '일반관리비', elec: '세대전기료', other: '기타항목'
+  total: '합계', general: '일반관리비', elec: '세대전기료', other: '기타항목', kwh: '전기 사용량(kWh)'
+};
+
+// ============================
+//  BRANCH COMPOSITION (tooltip)
+// ============================
+const branchComposition = {
+  '낙산해변':        { general: '일반관리비', elec: '세대전기료', other: '수선유지비, 청소비, 소독비, 보험료 등' },
+  '시흥거북섬':      { general: '일반관리비', elec: '세대전기료 + 기본전기료', other: '수선유지비, 청소비, 보험료 등' },
+  '해운대역':        { general: '일반관리비 + 시설관리비 + 경비용역비\n+ 미화용역비 + 미화용품비', elec: '전기금액 + 기본전기료', other: '공동수도료, 공용전기료, 수도금액\nTV수신료, 전력기금 등' },
+  '속초해변C':       { general: '일반관리비', elec: '세대전기료 + 기본전기료', other: '공동전기료, 청소비, 수선유지비\n소독비, 승강기유지비, 보험료, 수도료 등' },
+  '속초해변AB':      { general: '일반관리비 + 일반관리비(비)', elec: '세대전기료 + 기본전기료', other: '공동전기료, 청소비, 수선유지비\n소독비, 승강기유지비, 보험료, 수도료\n장기수선충당금 등' },
+  '호텔동탄':        { general: '일반관리비', elec: '냉난방비 + 세대전기료', other: '수선유지비, 청소비, 보험료 등' },
+  '강남SAC시그니티': { general: '일반관리비', elec: '세대전기료', other: '공동전기료, 청소비, 수선유지비\n소독비, 승강기유지비, 보험료, 수도료 등' },
+  '명동':            { general: '일반관리비', elec: '세대전기료', other: '공동전기료, 전력기금, 청소비\n수선유지비, 보험료 등' },
+  '부산역':          { general: '일반관리비', elec: '세대전기료', other: '수선유지비, 청소비, 보험료 등' },
+  '인천차이나타운':  { general: '일반관리비', elec: '세대전기료 + 에어컨전기료', other: '공동관리비, 기타' },
+  '로이움':          { general: '일반관리비', elec: '세대전기료', other: '공동전기료, 전력기금, 청소비\n승강기유지비, 수선유지비, 보험료 등' },
+  '부산기장점':      { general: '일반관리비', elec: '세대전기료 + 실외기', other: '공동전기료, 가로등전기료, 전력기금\n청소비, 소독비, 수선유지비, 보험료\n수선적립금, 선거관리운영비, 공동수도료' }
 };
 
 // Darker variants for text on white backgrounds (table headers, cell text)
@@ -1200,18 +1239,18 @@ const otherBreakdown = {
     "2025-12": {"청소비(과)":63940,"승강기유지비":4980,"수선유지비(과)":10500,"정화조오물수수":1460,"건물보험료":4720,"공동전기료":20270,"전력기금":2380}
   },
   "해운대역": {
-    "2025-01": {"기본전기료":32381,"공동수도료":3210,"공용전기료":30275,"수도금액":7206,"TV수신료":5000,"전력기금":3522},
-    "2025-02": {"기본전기료":32381,"공동수도료":3916,"공용전기료":29632,"수도금액":11636,"TV수신료":5000,"전력기금":3510},
-    "2025-03": {"기본전기료":32381,"공동수도료":2684,"공용전기료":29467,"수도금액":7757,"TV수신료":5000,"전력기금":3549},
-    "2025-04": {"기본전기료":32381,"공동수도료":656,"공용전기료":24663,"수도금액":7756,"TV수신료":5000,"전력기금":3091},
-    "2025-05": {"기본전기료":32381,"공동수도료":4616,"공용전기료":23972,"수도금액":7758,"TV수신료":5000,"전력기금":2961},
-    "2025-06": {"기본전기료":32381,"공동수도료":4207,"공용전기료":24401,"수도금액":11635,"TV수신료":5000,"전력기금":3212},
-    "2025-07": {"기본전기료":32381,"공동수도료":4846,"공용전기료":27700,"수도금액":7758,"TV수신료":5000,"전력기금":4029},
-    "2025-08": {"기본전기료":32381,"공동수도료":4823,"공용전기료":39008,"수도금액":11643,"TV수신료":5000,"전력기금":4750},
-    "2025-09": {"기본전기료":32381,"공동수도료":6833,"공용전기료":29183,"수도금액":15525,"TV수신료":5000,"전력기금":4408},
-    "2025-10": {"기본전기료":32381,"공동수도료":1824,"공용전기료":27658,"수도금액":15525,"TV수신료":5000,"전력기금":3384},
-    "2025-11": {"기본전기료":32381,"공동수도료":6457,"공용전기료":23904,"수도금액":15527,"TV수신료":5000,"전력기금":2770},
-    "2025-12": {"기본전기료":32381,"공동수도료":4548,"공용전기료":27139,"수도금액":7762,"TV수신료":5000,"전력기금":2756}
+    "2024-12": {"공동수도료":3210,"공용전기료":30275,"수도금액":7206,"TV수신료":5000,"전력기금":3522},
+    "2025-01": {"공동수도료":3916,"공용전기료":29632,"수도금액":11636,"TV수신료":5000,"전력기금":3510},
+    "2025-02": {"공동수도료":2684,"공용전기료":29467,"수도금액":7757,"TV수신료":5000,"전력기금":3549},
+    "2025-03": {"공동수도료":656,"공용전기료":24663,"수도금액":7756,"TV수신료":5000,"전력기금":3091},
+    "2025-04": {"공동수도료":4616,"공용전기료":23972,"수도금액":7758,"TV수신료":5000,"전력기금":2961},
+    "2025-05": {"공동수도료":4207,"공용전기료":24401,"수도금액":11635,"TV수신료":5000,"전력기금":3212},
+    "2025-06": {"공동수도료":4846,"공용전기료":27700,"수도금액":7758,"TV수신료":5000,"전력기금":4029},
+    "2025-07": {"공동수도료":4823,"공용전기료":39008,"수도금액":11643,"TV수신료":5000,"전력기금":4750},
+    "2025-08": {"공동수도료":6833,"공용전기료":29183,"수도금액":15525,"TV수신료":5000,"전력기금":4408},
+    "2025-09": {"공동수도료":1824,"공용전기료":27658,"수도금액":15525,"TV수신료":5000,"전력기금":3384},
+    "2025-10": {"공동수도료":6457,"공용전기료":23904,"수도금액":15527,"TV수신료":5000,"전력기금":2770},
+    "2025-11": {"공동수도료":4548,"공용전기료":27139,"수도금액":7762,"TV수신료":5000,"전력기금":2756}
   },
   "속초해변C": {
     "2025-01": {"일반관리비(비)":240,"청소비(과)":780,"청소비(비)":170,"수선유지비":9150,"소독비":750,"승강기유지비":3430,"인터넷요금":3770,"보험료":1770,"정화조청소비":950,"기본전기료":9170,"공동전기료":11730,"TV수신료":2500,"전력기금":920,"세대수도료":4900,"공동수도료":3230,"저수조청소비":260},
@@ -1860,9 +1899,9 @@ function renderSingle(el) {
     <div class="section">
       <div class="section-title">월별 항목 구성 <span style="font-weight:400;color:${branchColor[name]};font-size:0.85rem;margin-left:6px">● ${name}</span></div>
       <div class="legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#93C5FD"></div>일반관리비</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#86EFAC"></div>세대전기료</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#FDE68A"></div>기타항목</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#93C5FD"></div>일반관리비${branchComposition[name] ? `<span class="comp-tip" data-tip="일반관리비\n${branchComposition[name].general}">?</span>` : ''}</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#86EFAC"></div>세대전기료${branchComposition[name] ? `<span class="comp-tip" data-tip="세대전기료\n${branchComposition[name].elec}">?</span>` : ''}</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#FDE68A"></div>기타항목${branchComposition[name] ? `<span class="comp-tip" data-tip="기타항목\n${branchComposition[name].other}">?</span>` : ''}</div>
       </div>
       <div class="chart-container"><canvas id="c_stacked"></canvas></div>
     </div>
@@ -2033,12 +2072,14 @@ function renderItem(el) {
       responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { position: 'top', labels: { font: { size: 11 }, padding: 14, usePointStyle: true, pointStyleWidth: 8 }},
-        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw?.toLocaleString()}원` }}
+        tooltip: { callbacks: { label: ctx => item === 'kwh'
+          ? ` ${ctx.dataset.label}: ${ctx.raw?.toLocaleString()} kWh`
+          : ` ${ctx.dataset.label}: ${ctx.raw?.toLocaleString()}원` }}
       },
       scales: {
         x: { grid: { display: false }, border: { display: false } },
         y: { grid: { color: '#F2F4F6' }, border: { display: false },
-             ticks: { callback: v => (v/10000).toFixed(0)+'만' }}
+             ticks: { callback: v => item === 'kwh' ? v.toLocaleString()+' kWh' : (v/10000).toFixed(0)+'만' }}
       }
     }
   }));
@@ -2049,22 +2090,30 @@ function renderItem(el) {
   const cumSums = {};
   selBranches.forEach(n => { cumSums[n] = 0; });
 
+  const isKwh  = item === 'kwh';
+  const fmtVal = (v, r) => {
+    if (!r) return '-';
+    const val = r[item];
+    if (val == null) return '-';
+    return isKwh ? val.toLocaleString() + ' kWh' : (val||0).toLocaleString() + '원';
+  };
+
   const tRows = allMonths.map(m => {
     selBranches.forEach(n => { if (rowMaps[n][m]) cumSums[n] += rowMaps[n][m][item] || 0; });
     return `<tr><td>${m}</td>${selBranches.map(n => {
       const r = rowMaps[n][m];
-      return `<td class="num" style="color:${branchDarkColor[n]}">${r ? (r[item]||0).toLocaleString() : '-'}</td>`;
+      return `<td class="num" style="color:${branchDarkColor[n]}">${fmtVal(null, r)}</td>`;
     }).join('')}</tr>`;
   }).join('');
 
   const tfCells = selBranches.map(n =>
-    `<td class="num" style="color:${branchDarkColor[n]};font-weight:700">${cumSums[n].toLocaleString()}</td>`
+    `<td class="num" style="color:${branchDarkColor[n]};font-weight:700">${isKwh ? cumSums[n].toLocaleString()+' kWh' : cumSums[n].toLocaleString()+'원'}</td>`
   ).join('');
 
   table.innerHTML = `
     <thead><tr><th>월</th>${thCells}</tr></thead>
     <tbody>${tRows}</tbody>
-    <tfoot><tr><td>합계</td>${tfCells}</tr></tfoot>
+    <tfoot><tr><td>${isKwh ? '합계' : '합계'}</td>${tfCells}</tr></tfoot>
   `;
 }
 
