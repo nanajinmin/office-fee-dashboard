@@ -346,6 +346,53 @@
     /* ── ITEM COMPARE TABLE ── */
     .compare-table-wrap { overflow-x: auto; }
 
+    /* ── HEATMAP TABLE ── */
+    .hm-table-wrap { overflow-x: auto; }
+    .hm-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .hm-table thead th {
+      padding: 8px 14px; text-align: right;
+      color: #8B95A1; font-weight: 600; font-size: 0.75rem;
+      border-bottom: 1px solid #E5E8EB; background: #FAFBFC;
+    }
+    .hm-th-month { text-align: left !important; min-width: 80px; }
+    .hm-table tbody td { padding: 6px 14px; text-align: right; border-bottom: 1px solid #F2F4F6; color: #374151; }
+    .hm-month { text-align: left !important; font-weight: 500; color: #8B95A1; font-size: 0.78rem; }
+    .hm-high { background: rgba(220,38,38,0.09); color: #DC2626; font-weight: 700; cursor: pointer; }
+    .hm-low  { background: rgba(29,78,216,0.09); color: #1D4ED8; font-weight: 700; cursor: pointer; }
+    .hm-high:hover { background: rgba(220,38,38,0.2); }
+    .hm-low:hover  { background: rgba(29,78,216,0.2); }
+    .hm-pct { font-size: 0.7rem; margin-left: 3px; opacity: 0.85; }
+
+    /* ── BRANCH QUESTION ── */
+    .branch-question-area { border-top: 1px solid #E5E8EB; }
+    .branch-copy-btn {
+      display: flex; align-items: center; gap: 8px;
+      width: 100%; padding: 12px 20px; background: #FFFBEB;
+      border: none; border-bottom: 1px solid #FDE68A;
+      font-size: 0.82rem; font-weight: 600; color: #92400E;
+      cursor: pointer; text-align: left; transition: background 0.15s;
+    }
+    .branch-copy-btn:hover { background: #FEF3C7; }
+    .branch-copy-btn.copied { background: #D1FAE5; color: #065F46; border-color: #6EE7B7; }
+    .branch-question-hidden { position: absolute; opacity: 0; pointer-events: none; height: 0; }
+
+    /* ── DETAIL PANEL ── */
+    .anomaly-detail-area { border-top: 2px solid #FDE68A; background: #FEFCE8; }
+    .anomaly-detail-area:empty { display: none; border: none; background: none; }
+    .detail-header {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+      padding: 12px 20px; border-bottom: 1px solid #FDE68A;
+    }
+    .detail-body { display: flex; gap: 16px; padding: 16px 20px; }
+    @media(max-width:650px) { .detail-body { flex-direction: column; } }
+    .detail-chart-wrap { width: 220px; height: 120px; flex-shrink: 0; }
+
+    /* ── σ HELP ── */
+    .sigma-help {
+      font-size: 0.72rem; color: #8B95A1; cursor: help;
+      text-decoration: underline dotted; white-space: nowrap;
+    }
+
     /* ── ANOMALY ANALYSIS ── */
     .anomaly-intro {
       background: #fff;
@@ -970,253 +1017,323 @@ Chart.defaults.color = '#8B95A1';
 // ============================
 //  RENDER DISPATCHER
 // ============================
-// ============================
 //  ANOMALY DETECTION
 // ============================
 let anomalyThreshold = 1.5;
+let openDetailKey = {};
 
 function detectAnomalies(threshold) {
   const results = [];
   branchNames.forEach(name => {
     const branch = branches[name];
     const rows = branch.data.map(processRow);
-
     ['elec', 'other', 'general'].forEach(field => {
       const vals = rows.map(r => r[field]);
       if (vals.length < 3) return;
       const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
       const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
-      if (std < 1000) return; // ignore nearly-flat series
-
+      if (std < 1000) return;
       rows.forEach(row => {
-        const val = row[field];
-        const z = (val - mean) / std;
+        const z = (row[field] - mean) / std;
         if (Math.abs(z) >= threshold) {
-          results.push({ branch: name, note: branch.note, month: row.month, field, value: val, mean, std, z, rows });
+          results.push({ branch: name, note: branch.note, month: row.month, field, value: row[field], mean, std, z, rows });
         }
       });
     });
   });
-  return results.sort((a, b) => Math.abs(b.z) - Math.abs(a.z));
-}
-
-function generateQuestion(a) {
-  const label = { elec: '세대전기료', other: '기타항목', general: '일반관리비' }[a.field];
-  const dir   = a.z > 0 ? '높게' : '낮게';
-  const pct   = ((Math.abs(a.value - a.mean) / a.mean) * 100).toFixed(0);
-  const ym    = a.month.replace('-', '년 ') + '월';
-  const avg   = Math.round(a.mean).toLocaleString();
-  const val   = a.value.toLocaleString();
-
-  return `[${a.branch}] ${ym} ${label} 이상 청구 확인 요청
-
-안녕하세요,
-
-${a.note} 관리비 청구 내역 관련하여 문의드립니다.
-
-${ym} ${label} 금액이 ${val}원으로 청구되었으며, 이는 동일 항목 월평균(${avg}원) 대비 약 ${pct}% ${dir} 책정된 수준입니다.
-
-아래 사항을 포함한 상세 내역을 안내해 주시면 감사하겠습니다:
-
-  1. ${label} 세부 항목별 금액 내역
-  2. 해당 항목이 평소보다 ${dir === '높게' ? '증가' : '감소'}한 구체적 사유
-     (예: 공사비, 장기수선충당금 정산, 보험료 일시납, 검침 오류 등)
-  3. 동일 사유가 다음 달에도 발생할 예정인지 여부
-
-감사합니다.`;
+  return results;
 }
 
 function generateAnalysis(a) {
-  const label  = { elec: '세대전기료', other: '기타항목', general: '일반관리비' }[a.field];
-  const mon    = parseInt(a.month.split('-')[1]);
-  const pct    = ((Math.abs(a.value - a.mean) / a.mean) * 100).toFixed(0);
-  const dir    = a.z > 0 ? '높음' : '낮음';
-  const idx    = a.rows.findIndex(r => r.month === a.month);
+  const label   = { elec: '세대전기료', other: '기타항목', general: '일반관리비' }[a.field];
+  const mon     = parseInt(a.month.split('-')[1]);
+  const pct     = ((Math.abs(a.value - a.mean) / a.mean) * 100).toFixed(0);
+  const dir     = a.z > 0 ? '높음' : '낮음';
+  const idx     = a.rows.findIndex(r => r.month === a.month);
   const prevRow = idx > 0 ? processRow(a.rows[idx - 1]) : null;
   const nextRow = idx < a.rows.length - 1 ? processRow(a.rows[idx + 1]) : null;
 
   let lines = [];
-  lines.push(`📊 ${label}이 월평균(${Math.round(a.mean).toLocaleString()}원) 대비 ${pct}% ${dir}\n    → 이달 ${a.value.toLocaleString()}원 / 평균 ${Math.round(a.mean).toLocaleString()}원 / 편차 ${a.std > 0 ? (a.z > 0 ? '+' : '') + a.z.toFixed(1) + 'σ' : ''}`);
-
+  lines.push(`📊 ${label}이 월평균(${Math.round(a.mean).toLocaleString()}원) 대비 ${pct}% ${dir}\n    → 이달 ${a.value.toLocaleString()}원 / 평균 ${Math.round(a.mean).toLocaleString()}원 (${a.z > 0 ? '+' : ''}${a.z.toFixed(1)}σ)`);
   if (prevRow) {
-    const prev = prevRow[a.field];
-    const chg  = a.value - prev;
-    const chgP = ((chg / prev) * 100).toFixed(0);
-    lines.push(`📈 전월(${a.rows[idx-1].month}) 대비 ${chg >= 0 ? '+' : ''}${chg.toLocaleString()}원 (${chg >= 0 ? '+' : ''}${chgP}%)`);
+    const chg = a.value - prevRow[a.field];
+    lines.push(`📈 전월(${a.rows[idx-1].month}) 대비 ${chg >= 0 ? '+' : ''}${chg.toLocaleString()}원 (${chg >= 0 ? '+' : ''}${((chg/prevRow[a.field])*100).toFixed(0)}%)`);
   }
   if (nextRow) {
-    const nxt  = nextRow[a.field];
-    const chg  = nxt - a.value;
-    lines.push(`➡️ 익월(${a.rows[idx+1].month})에는 ${nxt.toLocaleString()}원으로 ${chg <= 0 ? '정상화' : '추가 상승'}`);
+    const nxt = nextRow[a.field];
+    lines.push(`➡️ 익월(${a.rows[idx+1].month})에는 ${nxt.toLocaleString()}원으로 ${nxt < a.value ? '감소 (완화)' : '추가 상승'}`);
   }
-
-  // Cause hypothesis
   if (a.field === 'elec' && a.z > 0) {
-    if (mon >= 6 && mon <= 9)
-      lines.push(`☀️ 하계 냉방 성수기(6~9월) — 냉방 kWh 사용량 급증 가능성 높음. 전기 사용량 및 냉방기 가동 내역 확인 필요.`);
-    else if (mon >= 12 || mon <= 2)
-      lines.push(`❄️ 동계 난방 성수기(12~2월) — 냉난방비 상승 시즌. 히터·냉난방 시스템 가동 내역 확인 필요.`);
-    else
-      lines.push(`⚡ 비성수기 전기료 이상 급증 — 냉난방 설비 고장, 누전, 특정 장비 장기 가동 여부 확인 필요.`);
+    if (mon >= 6 && mon <= 9) lines.push(`☀️ 하계 냉방 성수기(6~9월) — kWh 사용량 급증 가능성 높음. 냉방기 가동 내역 확인 권장.`);
+    else if (mon >= 12 || mon <= 2) lines.push(`❄️ 동계 난방 성수기(12~2월) — 냉난방비 상승 시즌. 히터·냉난방 가동 내역 확인 권장.`);
+    else lines.push(`⚡ 비성수기 전기료 급증 — 설비 고장, 누전, 특정 장비 장기 가동 여부 확인 필요.`);
   } else if (a.field === 'elec' && a.z < 0) {
-    lines.push(`💡 전기료가 평균보다 낮습니다. 절감 요인(공실, 절전 등)이 있는지 확인하세요.`);
+    lines.push(`💡 전기료가 평균보다 낮습니다. 공실·절전 효과이거나 데이터 누락 가능성을 확인하세요.`);
   } else if (a.field === 'other' && a.z > 0) {
-    if (a.value > a.mean * 3)
-      lines.push(`🔧 기타항목이 평균의 ${(a.value / a.mean).toFixed(1)}배 수준 — 대규모 수선공사, 장기수선충당금 일시 정산, 화재보험료 일시납 등 특별 항목 발생 가능성이 매우 높습니다.`);
-    else
-      lines.push(`📋 기타항목 증가 — 공동설비 유지보수, 엘리베이터 수리, 수도·청소비 변동 등 비정기 비용이 원인일 수 있습니다.`);
+    if (a.value > a.mean * 3) lines.push(`🔧 기타항목이 평균의 ${(a.value/a.mean).toFixed(1)}배 — 대규모 수선공사, 장기수선충당금 일시 정산, 화재보험료 일시납 등 특별 항목 발생 가능성이 매우 높습니다. 청구서 세부 내역 필수 확인.`);
+    else lines.push(`📋 기타항목 증가 — 공동설비 유지보수, 엘리베이터 수리, 수도·청소비 변동 등 비정기 비용 원인 가능.`);
   } else if (a.field === 'other' && a.z < 0) {
-    lines.push(`📉 기타항목이 낮습니다. 공동비용 정산 지연이나 누락 여부를 확인하세요.`);
-  } else if (a.field === 'general' && a.z > 0) {
-    lines.push(`🏢 일반관리비 증가 — 관리인력 인건비 인상, 청소·경비 용역비 증액, 또는 관리사무소 운영비 증가 가능성.`);
-  } else if (a.field === 'general' && a.z < 0) {
-    lines.push(`🏢 일반관리비가 낮습니다. 용역계약 변경이나 관리 항목 조정 여부를 확인하세요.`);
+    lines.push(`📉 기타항목이 낮습니다. 공동비용 정산 지연이나 항목 누락 여부를 확인하세요.`);
+  } else if (a.field === 'general') {
+    lines.push(a.z > 0
+      ? `🏢 일반관리비 증가 — 관리인력 인건비 인상, 청소·경비 용역비 증액, 관리사무소 운영비 증가 가능성.`
+      : `🏢 일반관리비가 낮습니다. 용역계약 변경이나 관리 항목 조정 여부를 확인하세요.`);
   }
-
   return lines.join('\n\n');
 }
 
+function generateBranchQuestion(branchName, anomalies) {
+  const branch = branches[branchName];
+  const fLabel = { elec: '세대전기료', other: '기타항목', general: '일반관리비' };
+  const sorted = [...anomalies].sort((a, b) => a.month.localeCompare(b.month));
+  const items  = sorted.map(a => {
+    const pct = ((Math.abs(a.value - a.mean) / a.mean) * 100).toFixed(0);
+    const ym  = a.month.replace('-', '년 ') + '월';
+    return `  ■ ${ym} ${fLabel[a.field]}: ${a.value.toLocaleString()}원\n     (월평균 ${Math.round(a.mean).toLocaleString()}원 대비 ${a.z > 0 ? '+' : '-'}${pct}% ${a.z > 0 ? '초과' : '미달'})`;
+  }).join('\n\n');
+
+  return `[${branchName}] 관리비 이상 항목 일괄 확인 요청
+
+안녕하세요,
+
+${branch.note} 관리비 청구 내역 중 월평균과 크게 차이가 나는 항목들이 있어 일괄 문의드립니다.
+
+${items}
+
+각 항목에 대해 아래 사항을 포함하여 안내해 주시면 감사하겠습니다.
+  1. 해당 월 세부 항목별 금액 내역
+  2. 평소 대비 증감이 발생한 구체적 사유
+     (예: 공사비, 장기수선충당금 정산, 화재보험료 일시납, 검침 오류 등)
+  3. 동일 사유가 향후에도 지속될 예정인지 여부
+
+감사합니다.`;
+}
+
 function renderAnalyze(el) {
-  const anomalies = detectAnomalies(anomalyThreshold);
+  const allAnomalies = detectAnomalies(anomalyThreshold);
 
-  // Group by branch
+  // Group by branch (preserve branchNames order)
   const byBranch = {};
-  anomalies.forEach(a => {
-    if (!byBranch[a.branch]) byBranch[a.branch] = [];
-    byBranch[a.branch].push(a);
-  });
+  branchNames.forEach(n => { byBranch[n] = []; });
+  allAnomalies.forEach(a => byBranch[a.branch].push(a));
+  const active = branchNames.filter(n => byBranch[n].length > 0);
 
-  const total = anomalies.length;
-  const branchCount = Object.keys(byBranch).length;
+  const sensitivityLabel = [
+    '', '', '', '', '', '', '', '',
+    '매우 민감 (작은 차이도 감지)', // 1.0
+    '민감',                          // 1.1
+    '민감',                          // 1.2
+    '조금 민감',                     // 1.3
+    '조금 민감',                     // 1.4
+    '기본 (권장)',                    // 1.5
+    '기본 (권장)',                    // 1.6
+    '보통',                          // 1.7
+    '보통',                          // 1.8
+    '엄격',                          // 1.9
+    '엄격',                          // 2.0
+    '매우 엄격',                     // 2.1
+    '매우 엄격',                     // 2.2
+    '극단적인 경우만',               // 2.3
+    '극단적인 경우만',               // 2.4
+    '극단적인 경우만',               // 2.5
+  ];
+  const sIdx = Math.round((anomalyThreshold - 1.0) / 0.1) + 8;
+  const sLabel = sensitivityLabel[sIdx] || '';
 
   el.innerHTML = `
     <div class="anomaly-intro">
       <div class="anomaly-intro-icon">🔍</div>
       <div class="anomaly-intro-text">
-        <h3>이상치 자동 분석 — ${branchCount}개 지점, 총 ${total}건 이상 감지</h3>
-        <p>월평균 대비 편차가 큰 항목을 자동으로 검출합니다. 각 항목에 관리사무소 문의 문구와 원인 분석이 함께 제공됩니다.</p>
+        <h3>이상치 분석 — ${active.length}개 지점, 총 ${allAnomalies.length}건 감지</h3>
+        <p>지점별로 일반관리비 · 세대전기료 · 기타항목의 월별 이상치를 자동 감지합니다.<br>
+           빨간색·파란색 셀을 클릭하면 해당 월 상세 분석이 표시됩니다.</p>
       </div>
     </div>
     <div class="anomaly-threshold-bar">
-      <span class="threshold-label">감지 민감도:</span>
+      <span class="threshold-label">감지 범위:</span>
       <input type="range" class="threshold-slider" min="1.0" max="2.5" step="0.1" value="${anomalyThreshold}"
-        oninput="anomalyThreshold=parseFloat(this.value); document.getElementById('thresholdVal').textContent=this.value+'σ'; renderMain();">
-      <span class="threshold-value" id="thresholdVal">${anomalyThreshold}σ</span>
-      <span style="color:#8B95A1;font-size:0.75rem">(낮을수록 민감 · 높을수록 엄격)</span>
+        oninput="anomalyThreshold=parseFloat(this.value); renderMain();">
+      <span class="threshold-value" id="thresholdVal">${sLabel}</span>
+      <span class="sigma-help" id="sigmaHelp" onclick="toggleSigmaHelp()" title="클릭하여 자세히 보기">❓ 이게 뭔가요?</span>
+    </div>
+    <div id="sigmaExplain" style="display:none;background:#F0F9FF;border:1px solid #BAE6FD;border-radius:10px;padding:14px 18px;margin-bottom:12px;font-size:0.82rem;line-height:1.7;color:#0C4A6E">
+      <strong>📐 감지 범위 쉽게 이해하기</strong><br><br>
+      이 기능은 각 항목(전기료, 관리비 등)의 <strong>월별 평균</strong>을 계산한 뒤,<br>
+      그 평균에서 <strong>얼마나 많이 벗어났는지</strong>를 기준으로 이상 여부를 판단합니다.<br><br>
+      예를 들어 세대전기료 평균이 10만원인데 어느 달에 25만원이 나왔다면 → 이상치!<br><br>
+      <strong>슬라이더 위치에 따라:</strong><br>
+      ◀ 왼쪽(민감) — 작은 차이도 이상으로 감지, 항목이 많아짐<br>
+      ▶ 오른쪽(엄격) — 확실히 튀는 것만 감지, 핵심 이상만 표시<br><br>
+      <em>처음에는 기본값(1.5)을 쓰고, 너무 많거나 적으면 조절해보세요.</em>
     </div>
     <div id="anomalyList"></div>
   `;
 
   const listEl = document.getElementById('anomalyList');
 
-  if (total === 0) {
-    listEl.innerHTML = `<div class="anomaly-empty"><div class="anomaly-intro-icon">✅</div><p>현재 기준(${anomalyThreshold}σ)으로는 이상 항목이 없습니다.<br>민감도를 높이면 더 많은 항목이 감지됩니다.</p></div>`;
+  if (allAnomalies.length === 0) {
+    listEl.innerHTML = `<div class="anomaly-empty"><div class="anomaly-empty-icon">✅</div><p>현재 감지 범위(${anomalyThreshold})에서는 이상 항목이 없습니다.<br>슬라이더를 왼쪽으로 이동하면 더 많은 항목이 감지됩니다.</p></div>`;
     return;
   }
 
-  Object.entries(byBranch).forEach(([branchName, items]) => {
-    const color = branchColor[branchName];
-    const note  = branches[branchName].note;
+  active.forEach(branchName => {
+    const items  = byBranch[branchName];
+    const branch = branches[branchName];
+    const rows   = branch.data.map(processRow);
+    const color  = branchColor[branchName];
+    const fields = ['general', 'elec', 'other'];
+    const fLabel = { general: '일반관리비', elec: '세대전기료', other: '기타항목' };
 
+    // Stats per field
+    const stats = {};
+    fields.forEach(f => {
+      const vals = rows.map(r => r[f]);
+      const mean = vals.reduce((a, b) => a + b, 0) / vals.length;
+      const std  = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+      stats[f] = { mean, std };
+    });
+
+    // Anomaly lookup
+    const aLookup = {};
+    items.forEach(a => {
+      if (!aLookup[a.month]) aLookup[a.month] = {};
+      aLookup[a.month][a.field] = a;
+    });
+
+    // Heatmap rows
+    const hRows = rows.map(row => {
+      const cells = fields.map(f => {
+        const val = row[f];
+        const { mean, std } = stats[f];
+        const z   = std > 1000 ? (val - mean) / std : 0;
+        const a   = aLookup[row.month]?.[f];
+        const pct = mean > 0 ? ((val - mean) / mean * 100).toFixed(0) : 0;
+        let cls = '', pctHtml = '', onclick = '';
+        if (a) {
+          cls     = z > 0 ? 'hm-high' : 'hm-low';
+          pctHtml = `<span class="hm-pct">${z > 0 ? '+' : ''}${pct}%</span>`;
+          onclick = `onclick="toggleDetail('${branchName}','${row.month}','${f}')"`;
+        }
+        return `<td class="hm-cell ${cls}" ${onclick}>${val.toLocaleString()}${pctHtml}</td>`;
+      }).join('');
+      return `<tr><td class="hm-month">${row.month}</td>${cells}</tr>`;
+    }).join('');
+
+    const safeId = branchName.replace(/[^a-zA-Z0-9]/g, '_');
     const groupEl = document.createElement('div');
     groupEl.className = 'anomaly-branch-group';
     groupEl.innerHTML = `
       <div class="anomaly-branch-header">
         <div class="anomaly-branch-dot" style="background:${color}"></div>
         <span class="anomaly-branch-name">${branchName}</span>
-        <span class="anomaly-branch-note">${note}</span>
+        <span class="anomaly-branch-note">${branch.note}</span>
         <span class="anomaly-branch-badge">⚠ ${items.length}건</span>
       </div>
+      <div class="hm-table-wrap">
+        <table class="hm-table">
+          <thead><tr>
+            <th class="hm-th-month">월</th>
+            <th>일반관리비</th><th>세대전기료</th><th>기타항목</th>
+          </tr></thead>
+          <tbody>${hRows}</tbody>
+        </table>
+      </div>
+      <div class="branch-question-area">
+        <button class="branch-copy-btn" id="bcb_${safeId}"
+          onclick="copyBranchQuestion('${safeId}','${branchName}')">
+          💬 ${branchName} — 이상 항목 전체 문의 문구 복사
+        </button>
+        <textarea class="branch-question-hidden" id="bq_${safeId}">${generateBranchQuestion(branchName, items)}</textarea>
+      </div>
+      <div class="anomaly-detail-area" id="detail_${safeId}"></div>
     `;
-
-    items.forEach((a, ci) => {
-      const fieldLabel = { elec: '세대전기료', other: '기타항목', general: '일반관리비' }[a.field];
-      const isHigh = a.z > 0;
-      const pct    = ((Math.abs(a.value - a.mean) / a.mean) * 100).toFixed(0);
-      const question = generateQuestion(a);
-      const analysis = generateAnalysis(a);
-
-      const cardEl = document.createElement('div');
-      cardEl.className = 'anomaly-card';
-      const canvasId = `aChart_${branchName}_${a.month}_${a.field}`.replace(/[^a-zA-Z0-9_]/g, '_');
-      cardEl.innerHTML = `
-        <div class="anomaly-card-header">
-          <span class="anomaly-badge ${isHigh ? 'high' : 'low'}">${isHigh ? '▲ 이상 높음' : '▼ 이상 낮음'}</span>
-          <span class="anomaly-month">${a.month}</span>
-          <span class="anomaly-field">· ${fieldLabel}</span>
-          <span class="anomaly-value" style="margin-left:auto;color:${isHigh ? '#DC2626' : '#1D4ED8'}">${a.value.toLocaleString()}원</span>
-          <span class="anomaly-vs">vs 평균 ${Math.round(a.mean).toLocaleString()}원 (${isHigh ? '+' : '-'}${pct}%)</span>
-        </div>
-        <div class="anomaly-body">
-          <div class="anomaly-chart-wrap">
-            <canvas id="${canvasId}"></canvas>
-          </div>
-          <div class="anomaly-panels">
-            <div class="question-box">
-              <div class="question-box-label">💬 관리사무소 문의 문구 (복사하여 그대로 사용)</div>
-              <button class="copy-btn" onclick="copyQuestion(this, '${canvasId}')">복사</button>
-              <pre class="question-text" id="qt_${canvasId}">${question}</pre>
-            </div>
-            <div class="analysis-box">
-              <div class="analysis-box-label">🤖 원인 분석</div>
-              <div class="analysis-text">${analysis}</div>
-            </div>
-          </div>
-        </div>
-      `;
-      groupEl.appendChild(cardEl);
-
-      // Draw mini chart after DOM insertion
-      setTimeout(() => {
-        const canvas = document.getElementById(canvasId);
-        if (!canvas) return;
-        const rows  = a.rows.map(processRow);
-        const labels = rows.map(r => r.month.slice(5));
-        const data   = rows.map(r => r[a.field]);
-        const highlightIdx = rows.findIndex(r => r.month === a.month);
-        const ptColors = data.map((_, i) => i === highlightIdx ? (isHigh ? '#DC2626' : '#1D4ED8') : color + '90');
-        const ptRadii  = data.map((_, i) => i === highlightIdx ? 6 : 3);
-
-        const miniChart = new Chart(canvas, {
-          type: 'line',
-          data: {
-            labels,
-            datasets: [{
-              data,
-              borderColor: color,
-              backgroundColor: 'transparent',
-              pointBackgroundColor: ptColors,
-              pointRadius: ptRadii,
-              tension: 0.3, borderWidth: 2, spanGaps: true
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: { callbacks: { label: ctx => ctx.raw.toLocaleString() + '원' } }
-            },
-            scales: {
-              x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 9 } } },
-              y: { grid: { color: '#F2F4F6' }, border: { display: false },
-                   ticks: { callback: v => (v/10000).toFixed(0)+'만', font: { size: 9 } }}
-            }
-          }
-        });
-        charts.push(miniChart);
-      }, 0);
-    });
-
     listEl.appendChild(groupEl);
   });
 }
 
-function copyQuestion(btn, id) {
-  const text = document.getElementById('qt_' + id)?.textContent || '';
+function toggleSigmaHelp() {
+  const el = document.getElementById('sigmaExplain');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function toggleDetail(branchName, month, field) {
+  const safeId = branchName.replace(/[^a-zA-Z0-9]/g, '_');
+  const key    = `${month}_${field}`;
+  const area   = document.getElementById(`detail_${safeId}`);
+  if (!area) return;
+
+  if (openDetailKey[safeId] === key) {
+    area.innerHTML = '';
+    openDetailKey[safeId] = null;
+    return;
+  }
+  openDetailKey[safeId] = key;
+
+  const branch  = branches[branchName];
+  const rows    = branch.data.map(processRow);
+  const vals    = rows.map(r => r[field]);
+  const mean    = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const std     = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length);
+  const val     = rows.find(r => r.month === month)[field];
+  const z       = std > 0 ? (val - mean) / std : 0;
+  const isHigh  = z > 0;
+  const fLabel  = { elec: '세대전기료', other: '기타항목', general: '일반관리비' }[field];
+  const color   = branchColor[branchName];
+  const pct     = ((Math.abs(val - mean) / mean) * 100).toFixed(0);
+  const a       = { branch: branchName, note: branch.note, month, field, value: val, mean, std, z, rows };
+  const analysis = generateAnalysis(a);
+  const cid     = `dc_${safeId}_${month}_${field}`.replace(/[^a-zA-Z0-9_]/g, '_');
+
+  area.innerHTML = `
+    <div class="detail-header">
+      <span class="anomaly-badge ${isHigh ? 'high' : 'low'}">${isHigh ? '▲ 이상 높음' : '▼ 이상 낮음'}</span>
+      <span class="anomaly-month">${month} · ${fLabel}</span>
+      <span style="margin-left:auto;font-weight:700;color:${isHigh ? '#DC2626' : '#1D4ED8'}">${val.toLocaleString()}원</span>
+      <span class="anomaly-vs">vs 평균 ${Math.round(mean).toLocaleString()}원 (${isHigh ? '+' : '-'}${pct}%)</span>
+    </div>
+    <div class="detail-body">
+      <div class="detail-chart-wrap"><canvas id="${cid}"></canvas></div>
+      <div class="analysis-box" style="flex:1;margin:0">
+        <div class="analysis-box-label">🤖 원인 분석</div>
+        <div class="analysis-text">${analysis}</div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    const canvas = document.getElementById(cid);
+    if (!canvas) return;
+    const labels    = rows.map(r => r.month.slice(5));
+    const data      = rows.map(r => r[field]);
+    const hi        = rows.findIndex(r => r.month === month);
+    const ptColors  = data.map((_, i) => i === hi ? (isHigh ? '#DC2626' : '#1D4ED8') : color + '90');
+    const ptRadii   = data.map((_, i) => i === hi ? 6 : 3);
+    charts.push(new Chart(canvas, {
+      type: 'line',
+      data: { labels, datasets: [{ data, borderColor: color, backgroundColor: 'transparent',
+        pointBackgroundColor: ptColors, pointRadius: ptRadii, tension: 0.3, borderWidth: 2, spanGaps: true }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw?.toLocaleString() + '원' } } },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 9 } } },
+          y: { grid: { color: '#F2F4F6' }, border: { display: false }, ticks: { callback: v => (v/10000).toFixed(0)+'만', font: { size: 9 } } }
+        }
+      }
+    }));
+  }, 0);
+}
+
+function copyBranchQuestion(safeId, branchName) {
+  const text = document.getElementById('bq_' + safeId)?.value || '';
+  const btn  = document.getElementById('bcb_' + safeId);
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓ 복사됨';
+    btn.textContent = '✓ 복사됨!';
     btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = '복사'; btn.classList.remove('copied'); }, 2000);
+    setTimeout(() => {
+      btn.textContent = `💬 ${branchName} — 이상 항목 전체 문의 문구 복사`;
+      btn.classList.remove('copied');
+    }, 2500);
   });
 }
 
