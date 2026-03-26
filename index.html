@@ -674,8 +674,8 @@
   <div class="mode-tabs">
     <button class="mode-tab active" onclick="setMode('single')">단일 지점</button>
     <button class="mode-tab" onclick="setMode('item')">항목 비교</button>
-    <button class="mode-tab" onclick="setMode('analyze')">🔍 이상치 분석</button>
-    <button class="mode-tab" onclick="setMode('inquiry')">📋 질문지</button>
+    <button class="mode-tab admin-only" onclick="setMode('analyze')" style="display:none">🔍 이상치 분석</button>
+    <button class="mode-tab admin-only" onclick="setMode('inquiry')" style="display:none">📋 질문지</button>
   </div>
 
   <!-- Branch panel -->
@@ -2071,6 +2071,9 @@ function renderItem(el) {
 // ============================
 //  INIT
 // ============================
+if (new URLSearchParams(location.search).has('me')) {
+  document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+}
 buildBranchPanel();
 renderMain();
 </script>
